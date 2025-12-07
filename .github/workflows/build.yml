@@ -47,10 +47,10 @@ jobs:
             "max-concurrent-downloads": 10
           }' | sudo tee /etc/docker/daemon.json
           
-          # 重启Docker使配置生效
-          sudo systemctl restart docker
-          sleep 5
-          echo "Docker配置已更新"
+          # # 重启Docker使配置生效
+          # sudo systemctl restart docker
+          # sleep 5
+          # echo "Docker配置已更新"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
