@@ -63,6 +63,41 @@ jobs:
           echo "Repository: ghcr.io/${{ github.repository_owner }}/hugo"
           echo "Tags: latest, ${{ github.sha }}"
 
+      - name: Set package visibility to public
+        run: |
+          # 使用GitHub API将容器包设置为公开可见
+          # 需要GITHUB_TOKEN具有packages:write权限
+          PACKAGE_NAME="hugo"
+          OWNER="${{ github.repository_owner }}"
+          
+          echo "Setting package visibility to public for $OWNER/$PACKAGE_NAME"
+          
+          # 获取包ID
+          PACKAGE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/user/packages/container/$PACKAGE_NAME" | jq -r '.id')
+          
+          if [ -z "$PACKAGE_ID" ] || [ "$PACKAGE_ID" = "null" ]; then
+            echo "Failed to get package ID. Trying organization endpoint..."
+            PACKAGE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/orgs/$OWNER/packages/container/$PACKAGE_NAME" | jq -r '.id')
+          fi
+          
+          if [ -n "$PACKAGE_ID" ] && [ "$PACKAGE_ID" != "null" ]; then
+            echo "Package ID: $PACKAGE_ID"
+            # 更新包可见性为公开
+            curl -X PATCH \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d '{"visibility":"public"}' \
+              "https://api.github.com/user/packages/container/$PACKAGE_ID"
+            echo "Package visibility set to public"
+          else
+            echo "Warning: Could not retrieve package ID. Visibility may remain private."
+            echo "You can manually set package visibility at: https://github.com/users/$OWNER/packages/container/$PACKAGE_NAME/settings"
+          fi
+
       # - name: Scan image for vulnerabilities (optional)
       #   if: github.event_name != 'pull_request'
       #   uses: aquasecurity/trivy-action@master
