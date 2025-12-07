@@ -33,24 +33,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Configure Docker daemon with mirror
-        run: |
-          # 配置Docker使用镜像加速
-          sudo mkdir -p /etc/docker
-          echo '{
-            "registry-mirrors": [
-              "https://hub.1panel.dev"
-            ],
-            "insecure-registries": [],
-            "debug": true,
-            "experimental": false,
-            "max-concurrent-downloads": 10
-          }' | sudo tee /etc/docker/daemon.json
+      # - name: Setup Docker Buildx with custom config
+      #   run: |
+      #     # 1. 配置Docker客户端使用镜像加速（不重启服务）
+      #     mkdir -p ~/.docker
+      #     cat > ~/.docker/config.json << EOF
+      #     {
+      #       "auths": {
+      #         "https://index.docker.io/v1/": {
+      #           "auth": "$(echo -n "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" | base64)"
+      #         },
+      #         "hub-mirror.c.163.com": {
+      #           "auth": "$(echo -n "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" | base64)"
+      #         }
+      #       },
+      #       "HttpHeaders": {
+      #         "User-Agent": "Docker-Client/19.03.9 (linux)"
+      #       },
+      #       "max-concurrent-downloads": 3,
+      #       "max-concurrent-uploads": 2
+      #     }
+      #     EOF
           
-          # # 重启Docker使配置生效
-          # sudo systemctl restart docker
-          # sleep 5
-          # echo "Docker配置已更新"
+      #     # 2. 设置Buildx使用镜像加速的基础镜像
+      #     docker buildx create \
+      #       --name mybuilder \
+      #       --driver docker-container \
+      #       --driver-opt image=docker.mirrors.ustc.edu.cn/moby/buildkit:buildx-stable-1 \
+      #       --use
+      #     docker buildx inspect --bootstrap
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
