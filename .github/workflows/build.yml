@@ -12,6 +12,7 @@ on:
 # 明确设置权限，避免fork仓库的权限问题
 permissions:
   contents: read
+  packages: write  # 推送镜像到GitHub Container Registry所需权限
   security-events: write
   actions: read
 
