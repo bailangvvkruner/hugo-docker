@@ -19,7 +19,7 @@ permissions:
 env:
   DOCKER_REPO: bailangvvking/hugo
   IMAGE_NAME: hugo
-  IMAGE_TAG: main
+  IMAGE_TAG: latest
 
 jobs:
   build-and-push:
