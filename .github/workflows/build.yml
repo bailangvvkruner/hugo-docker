@@ -67,6 +67,9 @@ jobs:
           image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           format: 'sarif'
           output: 'trivy-results.sarif'
+          # 禁用缓存以减少存储使用
+          skip-db-update: false  # 可以设置为true跳过数据库更新，但会影响扫描准确性
+          skip-java-db-update: false
 
       - name: Upload Trivy scan results
         if: github.event_name != 'pull_request' && github.event_name != 'schedule'
