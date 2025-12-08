@@ -51,6 +51,8 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
+          # 禁用缓存，确保每次构建都是全新的
+          cache: false
 
       - name: Output image info
         run: |
