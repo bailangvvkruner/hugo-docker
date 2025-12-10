@@ -61,6 +61,12 @@ jobs:
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
           # 禁用缓存，确保每次构建都是全新的
           cache: false
+          # # 启用缓存以加速构建
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+          # # 添加构建参数，优化构建过程
+          # build-args: |
+          #   BUILDKIT_INLINE_CACHE=1
 
       - name: Output image info
         run: |
