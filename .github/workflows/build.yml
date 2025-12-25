@@ -21,6 +21,11 @@ env:
   IMAGE_NAME: hugo
   IMAGE_TAG: latest
 
+# 在 workflow 文件顶部添加
+concurrency:
+  group: build-and-push-${{ github.ref }}
+  cancel-in-progress: false  # 改为 false，允许并发
+
 jobs:
   build-and-push:
     name: Build and Push Docker Image
