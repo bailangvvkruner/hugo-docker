@@ -56,7 +56,12 @@ RUN set -eux \
     # && upx --ultra-brute $FILENAME \
     && echo "Binary size after upx:" \
     # && du -h $FILENAME \
-    && du -b $FILENAME
+    && du -b $FILENAME \
+    # 清理Go缓存和临时文件以释放空间
+    && go clean -modcache \
+    && go clean -cache \
+    && rm -rf /tmp/go-build* \
+    && rm -rf /root/.cache/go-build
     # 注意：这里故意不清理构建依赖，因为是多阶段构建，且清理会触发busybox触发器错误
     # 最终镜像只复制二进制文件，构建阶段的中间层不会影响最终镜像大小
     # # 清理构建依赖
