@@ -14,15 +14,11 @@ WORKDIR /app
 # 使用--no-scripts禁用触发器执行，避免busybox触发器在arm64架构下的兼容性问题
 RUN set -eux \
     && FILENAME=hugo \
+    # 先更新包索引，确保能找到最新的包
+    && apk update \
     && apk add --no-cache --no-scripts --virtual .build-deps \
-    # gcc \
-    # g++ \
-    # musl-dev \
     git \
-    # build-base \
-    # 包含strip命令
     binutils \
-    # upx \
     \
     # 尝试安装 upx，如果不可用则继续（某些架构可能不支持）
     && apk add --no-cache --no-scripts --virtual .upx-deps \
