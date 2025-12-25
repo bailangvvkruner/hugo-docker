@@ -30,6 +30,8 @@ RUN set -eux \
     \
     # 直接下载并构建 hugo（无需本地源代码）
     && git clone --depth 1 https://github.com/gohugoio/hugo . \
+    # 直接更新并获取所有依赖到最新版本
+    && go get -u ./... \
     # 构建纯静态二进制文件（无CGO）
     # && CGO_ENABLED=1 go build \
     && CGO_ENABLED=0 go build \
