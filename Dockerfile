@@ -15,11 +15,11 @@ WORKDIR /app
 RUN set -eux \
     && FILENAME=hugo \
     && apk add --no-cache --no-scripts --virtual .build-deps \
-    gcc \
-    g++ \
-    musl-dev \
+    # gcc \
+    # g++ \
+    # musl-dev \
     git \
-    build-base \
+    # build-base \
     # 包含strip命令
     binutils \
     # upx \
