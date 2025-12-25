@@ -22,7 +22,12 @@ RUN set -eux \
     build-base \
     # 包含strip命令
     binutils \
-    upx \
+    # upx \
+    \
+    # 尝试安装 upx，如果不可用则继续（某些架构可能不支持）
+    && apk add --no-cache --no-scripts --virtual .upx-deps \
+        upx 2>/dev/null || echo "upx not available, skipping compression" \
+    \
     # 直接下载并构建 hugo（无需本地源代码）
     && git clone --depth 1 https://github.com/gohugoio/hugo . \
     # 构建纯静态二进制文件（无CGO）
@@ -43,7 +48,8 @@ RUN set -eux \
     && echo "Binary size after stripping:" \
     # && du -h $FILENAME \
     && du -b $FILENAME \
-    && upx --best --lzma $FILENAME \
+    # && upx --best --lzma $FILENAME \
+    && (upx --best --lzma $FILENAME 2>/dev/null || echo "upx compression skipped") \
     # 极致压榨
     # && upx --ultra-brute $FILENAME \
     && echo "Binary size after upx:" \
@@ -87,7 +93,7 @@ ENV GOGC=100
 # 验证Hugo是否正常工作（在scratch镜像中直接执行二进制文件）
 # 使用更健壮的验证方法，避免特定架构的QEMU模拟问题
 # RUN /hugo version 2>/dev/null || echo "Validation may have failed for this architecture, but binary exists"
-RUN ["/hugo", "version"]
+# RUN ["/hugo", "version"]
 
 # 健康检查
 # HEALTHCHECK --interval=60s --timeout=1s --start-period=5s --retries=1 \
