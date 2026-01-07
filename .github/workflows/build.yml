@@ -106,15 +106,24 @@ jobs:
           echo "Aliyun Repository: ${{ env.ALIYUN_REPO }}"
           echo "Tag: ${{ env.IMAGE_TAG }}"
 
-      - name: Scan image for vulnerabilities
+      - name: Scan DockerHub image for vulnerabilities
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
           format: 'sarif'
-          output: 'trivy-results.sarif'
-          # 禁用缓存以减少存储使用
-          skip-db-update: false  # 可以设置为true跳过数据库更新，但会影响扫描准确性
+          output: 'trivy-dockerhub-results.sarif'
+          skip-db-update: false
+          skip-java-db-update: false
+
+      - name: Scan Aliyun image for vulnerabilities
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ALIYUN_REPO }}:${{ env.IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-aliyun-results.sarif'
+          skip-db-update: false
           skip-java-db-update: false
 
       - name: Upload Trivy scan results
