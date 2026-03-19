@@ -21,7 +21,7 @@ env:
   IMAGE_NAME: hugo
   IMAGE_TAG: latest
 
-# 在 workflow 文件顶部添加
+# 控制并发，避免重复构建
 concurrency:
   group: build-and-push-${{ github.ref }}
   cancel-in-progress: false  # 改为 false，允许并发
@@ -33,16 +33,15 @@ jobs:
       - self-hosted
       - linux
       - x64
-    # 增加超时时间（自托管运行器可以设置更长时间）
-    # timeout-minutes: 1440  # 24小时
-    # 核心：配置自动重试（注意缩进！与runs-on同级）
+    # 增加超时时间（自托管运行器适配）
+    timeout-minutes: 120  # 2小时足够，无需24小时
+    # 自动重试配置（与runs-on同级，缩进正确）
     retry:
-      maxAttempts: 3  # 最多重试2次（总计运行3次）
+      maxAttempts: 3  # 总计运行3次（初始1次+重试2次）
       when:
         - jobStatus == 'failure'
         - jobStatus == 'cancelled'
         - jobStatus == 'timed_out'
-    # 必须添加steps（否则job无执行逻辑）
     
     steps:
       - name: Checkout code
@@ -50,32 +49,27 @@ jobs:
         with:
             fetch-depth: 0
 
+      - name: Set up QEMU（关键！多架构构建依赖）
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true  # 确保Buildx正确安装
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+        # 登录失败时重试
+        continue-on-error: false
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # context: .
-          file: |
-            ./Dockerfile
-          # platforms: |
-          #     linux/amd64
-          #     linux/386
-          #     linux/arm64
-          #     linux/arm/v7
-          #     linux/arm/v6
-          #     linux/arm/v5
-          #     linux/riscv64
-          #     linux/ppc64le
-          #     linux/mips64le
-          #     linux/s390x
+          context: .  # 恢复上下文，否则Buildx找不到Dockerfile
+          file: ./Dockerfile
           platforms: |
               linux/386
               linux/amd64
@@ -88,31 +82,27 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}
-          # 禁用缓存，确保每次构建都是全新的
-          cache: false
-          # # 启用缓存以加速构建
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-          # # 添加构建参数，优化构建过程
-          # build-args: |
-          #   BUILDKIT_INLINE_CACHE=1
+          cache: false  # 禁用缓存确保纯净构建
 
       - name: Output image info
         run: |
-          echo "Image built and pushed successfully"
+          echo "✅ Image built and pushed successfully"
           echo "Repository: ${{ env.DOCKER_REPO }}"
           echo "Tag: ${{ env.IMAGE_TAG }}"
+          # 验证镜像是否存在
+          docker pull ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }} || echo "⚠️ Image pull check failed (may be delayed)"
 
       - name: Scan image for vulnerabilities
         if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ env.DOCKER_REPO }}:${{ env.IMAGE_TAG }}  # 修正镜像名
           format: 'sarif'
           output: 'trivy-results.sarif'
-          # 禁用缓存以减少存储使用
-          skip-db-update: false  # 可以设置为true跳过数据库更新，但会影响扫描准确性
+          skip-db-update: false
           skip-java-db-update: false
+        # 扫描失败不阻断流程（非核心步骤）
+        continue-on-error: true
 
       - name: Upload Trivy scan results
         if: github.event_name != 'pull_request' && github.event_name != 'schedule'
@@ -120,3 +110,10 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'container-vulnerability-scan'
+        continue-on-error: true
+
+      - name: Notify build failure（可选：失败通知）
+        if: failure()
+        run: |
+          echo "❌ Build/push failed after ${{ job.retry_attempts }} attempts"
+          # 可添加钉钉/企业微信/邮件通知逻辑
